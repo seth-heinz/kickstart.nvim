@@ -312,7 +312,7 @@ require('lazy').setup({
   --
   -- Then, because we use the `opts` key (recommended), the configuration runs
   -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
-
+  { 'nvim-java/nvim-java' },
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
@@ -698,6 +698,7 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
+        --
 
         lua_ls = {
           -- cmd = { ... },
@@ -731,9 +732,6 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
-        'jdtls', -- Java Language Server
-        'java-debug-adapter', -- Java Debug Adapter
-        'java-test', -- Java Test Runner
         'groovy-language-server', -- Groovy Language Server for Spock tests
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -742,6 +740,73 @@ require('lazy').setup({
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
         automatic_installation = false,
         handlers = {
+          jdtls = function()
+            require('java').setup {
+              -- Startup checks
+              checks = {
+                nvim_version = true, -- Check Neovim version
+                nvim_jdtls_conflict = true, -- Check for nvim-jdtls conflict
+              },
+
+              -- JDTLS configuration
+              jdtls = {
+                version = '1.43.0',
+                settings = {
+                  java = {
+                    import = {
+                      -- Prevent automatic generation of Eclipse files if possible
+                      gradle = { enabled = true },
+                      maven = { enabled = true },
+                      -- This helps keep the project root clean
+                      generatesMetadataFilesAtProjectRoot = false,
+                    },
+                  },
+                },
+              },
+
+              -- Extensions
+              lombok = {
+                enable = true,
+                version = '1.18.40',
+              },
+
+              java_test = {
+                enable = true,
+                version = '0.40.1',
+              },
+
+              java_debug_adapter = {
+                enable = true,
+                version = '0.58.2',
+              },
+
+              spring_boot_tools = {
+                enable = true,
+                version = '1.55.1',
+              },
+
+              -- JDK installation
+              jdk = {
+                auto_install = true,
+                version = '17',
+              },
+
+              -- Logging
+              log = {
+                use_console = true,
+                use_file = true,
+                level = 'info',
+                log_file = vim.fn.stdpath 'state' .. '/nvim-java.log',
+                max_lines = 1000,
+                show_location = false,
+              },
+            }
+
+            require('lspconfig').jdtls.setup {
+              -- Your custom nvim-java configuration goes here
+            }
+          end,
+
           function(server_name)
             local server = servers[server_name] or {}
             -- This handles overriding only values explicitly passed
@@ -961,11 +1026,12 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    lazy = false,
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
+    master = 'nvim-treesitter.config', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'java', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
