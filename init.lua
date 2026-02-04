@@ -191,6 +191,14 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+-- IdeaVim-style diagnostic navigation (mirrors ~/.ideavimrc ]e and [e)
+vim.keymap.set('n', ']e', vim.diagnostic.goto_next, { desc = 'IdeaVim: next [e]rror/diagnostic' })
+vim.keymap.set('n', '[e', vim.diagnostic.goto_prev, { desc = 'IdeaVim: prev [e]rror/diagnostic' })
+
+-- IdeaVim-style visual mode indent persistence (mirrors ~/.ideavimrc < and >)
+vim.keymap.set('v', '<', '<gv', { desc = 'IdeaVim: indent left and reselect' })
+vim.keymap.set('v', '>', '>gv', { desc = 'IdeaVim: indent right and reselect' })
+
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
@@ -296,6 +304,11 @@ require('lazy').setup({
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
+      on_attach = function(bufnr)
+        local gitsigns = require 'gitsigns'
+        -- IdeaVim-style git blame (mirrors ~/.ideavimrc gb for Annotate)
+        vim.keymap.set('n', 'gb', gitsigns.blame_line, { buffer = bufnr, desc = 'IdeaVim: [g]it [b]lame (Annotate)' })
+      end,
     },
   },
 
@@ -474,6 +487,10 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      -- IdeaVim-style file/search navigation (mirrors ~/.ideavimrc gf and gz)
+      vim.keymap.set('n', 'gf', builtin.find_files, { desc = 'IdeaVim: [g]oto [f]ile (GotoFile)' })
+      vim.keymap.set('n', 'gz', builtin.live_grep, { desc = 'IdeaVim: [g]rep in path (FindInPath)' })
     end,
   },
 
@@ -586,6 +603,15 @@ require('lazy').setup({
           --  Useful when you're not sure what type a variable is and you want to see
           --  the definition of its *type*, not where it was *defined*.
           map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
+
+          -- IdeaVim-style navigation keymaps (mirrors ~/.ideavimrc)
+          -- These use shorter key sequences matching IntelliJ muscle memory
+          map('gi', require('telescope.builtin').lsp_implementations, 'IdeaVim: [g]oto [i]mplementation')
+          map('gd', require('telescope.builtin').lsp_definitions, 'IdeaVim: [g]oto [d]efinition')
+          map('gu', require('telescope.builtin').lsp_references, 'IdeaVim: [g]oto [u]sages (find references)')
+          map('gh', vim.lsp.buf.hover, 'IdeaVim: [g]oto [h]over (QuickJavaDoc)')
+          map('gH', vim.diagnostic.open_float, 'IdeaVim: [g]oto error [H]elp (ShowErrorDescription)')
+          map('gp', vim.lsp.buf.signature_help, 'IdeaVim: [g]oto [p]arameter info')
 
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
@@ -732,7 +758,6 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
-        'groovy-language-server', -- Groovy Language Server for Spock tests
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
