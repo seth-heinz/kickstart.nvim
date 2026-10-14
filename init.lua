@@ -207,6 +207,63 @@ vim.keymap.set('v', '>', '>gv', { desc = 'IdeaVim: indent right and reselect' })
 -- or just use <C-\><C-n> to exit terminal mode
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
+-- Open current/selected code on GitHub in browser (mirrors IdeaVim's Github.Open.In.Browser)
+-- Visual-mode keymap captures the selection range before IdeaVim clears it
+-- Normal-mode keymap uses current line number
+local function _open_github_url(repo_url, sha, startline, endline)
+  local repo = ''
+  if repo_url ~= '' then
+    local parts = vim.fn.split(repo_url, '/')
+    if #parts > 1 then
+      table.remove(parts, 1)
+      local last = parts[#parts]
+      if last:match('%.git$') then last = last:gsub('%.git$', '') end
+      repo = last
+    end
+  end
+  if repo == '' then
+    repo = vim.fn.expand('%:p:h'):match('[^/]+$') or 'unknown'
+  end
+  if repo == '' or sha == '' then
+    vim.notify('No git remote or origin found for ' .. vim.fn.expand('%:p'), vim.log.levels.WARN)
+    return
+  end
+
+  local worktree_root = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' rev-parse --show-toplevel 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local relpath = vim.fn.expand('%:p')
+  if worktree_root ~= '' and relpath:sub(1, #worktree_root) == worktree_root then
+    relpath = relpath:sub(#worktree_root + 2)
+  end
+
+  local cmd = string.format(
+    "open 'https://github.com/transferwise/%s/blob/%s/%s#L%d-L%d'",
+    repo, sha, vim.fn.shellescape(relpath),
+    startline, endline
+  )
+  vim.fn.system(cmd)
+end
+
+-- Visual mode: capture selection range
+vim.keymap.set('v', 'gB', function()
+  local startline = vim.fn.line('v')
+  local endline = vim.fn.line('.')
+  local repo_url = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' remote get-url origin 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local sha = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' rev-parse HEAD 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  if startline > endline then
+    startline, endline = endline, startline
+  end
+  _open_github_url(repo_url, sha, startline, endline)
+end, { desc = 'Open file on GitHub in browser (transferwise)' })
+
+-- Normal mode: current line
+vim.keymap.set('n', 'gB', function()
+  local startline = vim.fn.line('.')
+  local endline = startline
+  local repo_url = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' remote get-url origin 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local sha = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' rev-parse HEAD 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  _open_github_url(repo_url, sha, startline, endline)
+end, { desc = 'Open file on GitHub in browser (transferwise)' })
+
 -- TIP: Disable arrow keys in normal mode
 -- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
 -- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
@@ -325,7 +382,15 @@ require('lazy').setup({
   --
   -- Then, because we use the `opts` key (recommended), the configuration runs
   -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
-  { 'nvim-java/nvim-java' },
+  {
+    'nvim-java/nvim-java',
+    config = function()
+      require('java').setup {
+        jdk = { auto_install = false },
+      }
+      vim.lsp.enable 'jdtls'
+    end,
+  },
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
@@ -726,6 +791,7 @@ require('lazy').setup({
         --
         --
 
+
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -765,73 +831,6 @@ require('lazy').setup({
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
         automatic_installation = false,
         handlers = {
-          jdtls = function()
-            require('java').setup {
-              -- Startup checks
-              checks = {
-                nvim_version = true, -- Check Neovim version
-                nvim_jdtls_conflict = true, -- Check for nvim-jdtls conflict
-              },
-
-              -- JDTLS configuration
-              jdtls = {
-                version = '1.43.0',
-                settings = {
-                  java = {
-                    import = {
-                      -- Prevent automatic generation of Eclipse files if possible
-                      gradle = { enabled = true },
-                      maven = { enabled = true },
-                      -- This helps keep the project root clean
-                      generatesMetadataFilesAtProjectRoot = false,
-                    },
-                  },
-                },
-              },
-
-              -- Extensions
-              lombok = {
-                enable = true,
-                version = '1.18.40',
-              },
-
-              java_test = {
-                enable = true,
-                version = '0.40.1',
-              },
-
-              java_debug_adapter = {
-                enable = true,
-                version = '0.58.2',
-              },
-
-              spring_boot_tools = {
-                enable = true,
-                version = '1.55.1',
-              },
-
-              -- JDK installation
-              jdk = {
-                auto_install = true,
-                version = '17',
-              },
-
-              -- Logging
-              log = {
-                use_console = true,
-                use_file = true,
-                level = 'info',
-                log_file = vim.fn.stdpath 'state' .. '/nvim-java.log',
-                max_lines = 1000,
-                show_location = false,
-              },
-            }
-
-            require('lspconfig').jdtls.setup {
-              -- Your custom nvim-java configuration goes here
-            }
-          end,
-
           function(server_name)
             local server = servers[server_name] or {}
             -- This handles overriding only values explicitly passed
@@ -853,7 +852,7 @@ require('lazy').setup({
       {
         '<leader>f',
         function()
-          require('conform').format { async = true, lsp_format = 'fallback' }
+          require('conform').format { lsp_format = 'fallback' }
         end,
         mode = '',
         desc = '[F]ormat buffer',
@@ -876,12 +875,16 @@ require('lazy').setup({
         end
       end,
       formatters_by_ft = {
+        json = { 'jq' },
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      },
+      formatters = {
+        jq = { args = { '--indent', '2' } },
       },
     },
   },
@@ -1029,21 +1032,6 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
-
-      -- Simple and easy statusline.
-      --  You could remove this setup call if you don't like it,
-      --  and try some other statusline plugin
-      local statusline = require 'mini.statusline'
-      -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
-
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
-      ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function()
-        return '%2l:%-2v'
-      end
 
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
