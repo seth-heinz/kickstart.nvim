@@ -26,6 +26,16 @@ return {
           NormalFloat = { bg = '#0d0d0d' },
           -- Make comments brighter
           Comment = { fg = '#7a8ac4', italic = true },
+          -- Match IntelliJ Dracula's Java fields, constants, and parameters.
+          ['@lsp.type.property.java'] = { link = '@variable.member' },
+          ['@lsp.typemod.property.static.java'] = { link = '@constant' },
+          ['@lsp.type.parameter.java'] = { fg = '#f8f8f2', italic = true },
+          ['@variable.parameter.java'] = { link = '@lsp.type.parameter.java' },
+          ['@attribute.java'] = { fg = '#50fa7b', italic = true },
+          ['@lsp.type.decorator.java'] = { link = '@attribute.java' },
+          ['@type.builtin.java'] = { link = '@keyword' },
+          ['@keyword.return.java'] = { link = '@keyword' },
+          ['@keyword.exception.java'] = { link = '@keyword' },
         },
       }
       vim.cmd.colorscheme 'dracula'

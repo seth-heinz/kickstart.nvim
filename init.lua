@@ -217,38 +217,36 @@ local function _open_github_url(repo_url, sha, startline, endline)
     if #parts > 1 then
       table.remove(parts, 1)
       local last = parts[#parts]
-      if last:match('%.git$') then last = last:gsub('%.git$', '') end
+      if last:match '%.git$' then
+        last = last:gsub('%.git$', '')
+      end
       repo = last
     end
   end
   if repo == '' then
-    repo = vim.fn.expand('%:p:h'):match('[^/]+$') or 'unknown'
+    repo = vim.fn.expand('%:p:h'):match '[^/]+$' or 'unknown'
   end
   if repo == '' or sha == '' then
-    vim.notify('No git remote or origin found for ' .. vim.fn.expand('%:p'), vim.log.levels.WARN)
+    vim.notify('No git remote or origin found for ' .. vim.fn.expand '%:p', vim.log.levels.WARN)
     return
   end
 
-  local worktree_root = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' rev-parse --show-toplevel 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
-  local relpath = vim.fn.expand('%:p')
+  local worktree_root = vim.fn.system("git -C '" .. vim.fn.expand '%:p:h' .. "' rev-parse --show-toplevel 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local relpath = vim.fn.expand '%:p'
   if worktree_root ~= '' and relpath:sub(1, #worktree_root) == worktree_root then
     relpath = relpath:sub(#worktree_root + 2)
   end
 
-  local cmd = string.format(
-    "open 'https://github.com/transferwise/%s/blob/%s/%s#L%d-L%d'",
-    repo, sha, vim.fn.shellescape(relpath),
-    startline, endline
-  )
+  local cmd = string.format("open 'https://github.com/transferwise/%s/blob/%s/%s#L%d-L%d'", repo, sha, vim.fn.shellescape(relpath), startline, endline)
   vim.fn.system(cmd)
 end
 
 -- Visual mode: capture selection range
 vim.keymap.set('v', 'gB', function()
-  local startline = vim.fn.line('v')
-  local endline = vim.fn.line('.')
-  local repo_url = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' remote get-url origin 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
-  local sha = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' rev-parse HEAD 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local startline = vim.fn.line 'v'
+  local endline = vim.fn.line '.'
+  local repo_url = vim.fn.system("git -C '" .. vim.fn.expand '%:p:h' .. "' remote get-url origin 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local sha = vim.fn.system("git -C '" .. vim.fn.expand '%:p:h' .. "' rev-parse HEAD 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
   if startline > endline then
     startline, endline = endline, startline
   end
@@ -257,10 +255,10 @@ end, { desc = 'Open file on GitHub in browser (transferwise)' })
 
 -- Normal mode: current line
 vim.keymap.set('n', 'gB', function()
-  local startline = vim.fn.line('.')
+  local startline = vim.fn.line '.'
   local endline = startline
-  local repo_url = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' remote get-url origin 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
-  local sha = vim.fn.system("git -C '" .. vim.fn.expand('%:p:h') .. "' rev-parse HEAD 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local repo_url = vim.fn.system("git -C '" .. vim.fn.expand '%:p:h' .. "' remote get-url origin 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
+  local sha = vim.fn.system("git -C '" .. vim.fn.expand '%:p:h' .. "' rev-parse HEAD 2>/dev/null"):gsub('%s', ''):gsub('\n', '')
   _open_github_url(repo_url, sha, startline, endline)
 end, { desc = 'Open file on GitHub in browser (transferwise)' })
 
@@ -383,13 +381,29 @@ require('lazy').setup({
   -- Then, because we use the `opts` key (recommended), the configuration runs
   -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
   {
-    'nvim-java/nvim-java',
-    config = function()
-      require('java').setup {
-        jdk = { auto_install = false },
-      }
-      vim.lsp.enable 'jdtls'
-    end,
+    'JetBrains/intellij-lsp.nvim',
+    commit = '9cfad18005470e4187090013e08f92ec9e437219',
+    opts = {
+      -- shortcut: pinned bundle bypasses Neovim 0.11 downloader bug; revisit when upgrading the server.
+      server_path = vim.fn.stdpath 'data' .. '/intellij-lsp/server/263.6379.0/bin/intellij-server',
+      accept_eula = true,
+      default_sdk = vim.fn.expand '~/.sdkman/candidates/java/21.0.12-tem',
+      -- Existing plugins own completion, navigation, and editor presentation.
+      autotrigger = false,
+      completeopt = false,
+      enter_accepts_completion = false,
+      references = false,
+      keymaps = false,
+      inlay_hints = false,
+      folding = false,
+      document_highlight = false,
+      signature_help = false,
+      file_templates = false,
+      colorscheme = false,
+      git = false,
+      run = false,
+      debug = false,
+    },
   },
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
@@ -437,8 +451,9 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
+        { '<leader>c', group = '[C]all hierarchy' },
         { '<leader>s', group = '[S]earch' },
-        { '<leader>t', group = '[T]oggle' },
+        { '<leader>t', group = '[T]oggle / Type hierarchy' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       },
     },
@@ -556,6 +571,8 @@ require('lazy').setup({
       -- IdeaVim-style file/search navigation (mirrors ~/.ideavimrc gf and gz)
       vim.keymap.set('n', 'gf', builtin.find_files, { desc = 'IdeaVim: [g]oto [f]ile (GotoFile)' })
       vim.keymap.set('n', 'gz', builtin.live_grep, { desc = 'IdeaVim: [g]rep in path (FindInPath)' })
+      -- Custom
+      vim.keymap.set('n', '<leader>mp', ':MarkdownPreview<CR>', { desc = '[m]arkdown [p]review' })
     end,
   },
 
@@ -691,12 +708,25 @@ require('lazy').setup({
             end
           end
 
+          local client = vim.lsp.get_client_by_id(event.data.client_id)
+          if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_prepareCallHierarchy, event.buf) then
+            map('<leader>ci', vim.lsp.buf.incoming_calls, '[C]all hierarchy: [I]ncoming')
+            map('<leader>co', vim.lsp.buf.outgoing_calls, '[C]all hierarchy: [O]utgoing')
+          end
+          if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_prepareTypeHierarchy, event.buf) then
+            map('<leader>ts', function()
+              vim.lsp.buf.typehierarchy 'subtypes'
+            end, '[T]ype hierarchy: [S]ubtypes')
+            map('<leader>tu', function()
+              vim.lsp.buf.typehierarchy 'supertypes'
+            end, '[T]ype hierarchy: s[U]pertypes')
+          end
+
           -- The following two autocommands are used to highlight references of the
           -- word under your cursor when your cursor rests there for a little while.
           --    See `:help CursorHold` for information about when this is executed
           --
           -- When you move your cursor, the highlights will be cleared (the second autocommand).
-          local client = vim.lsp.get_client_by_id(event.data.client_id)
           if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
             local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
@@ -791,7 +821,6 @@ require('lazy').setup({
         --
         --
 
-
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -829,6 +858,7 @@ require('lazy').setup({
 
       require('mason-lspconfig').setup {
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+        automatic_enable = { exclude = { 'jdtls' } },
         automatic_installation = false,
         handlers = {
           function(server_name)
@@ -1041,7 +1071,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     lazy = false,
     build = ':TSUpdate',
-    master = 'nvim-treesitter.config', -- Sets main module to use for opts
+    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
       ensure_installed = { 'bash', 'c', 'diff', 'html', 'java', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
